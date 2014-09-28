@@ -119,7 +119,7 @@ module Vanity
     def initialize(playground, name, id = nil)
       @playground, @name = playground, name.to_s
       @id = (id || name.to_s.downcase.gsub(/\W+/, '_')).to_sym
-      @hooks = []
+      @hooks = {}
     end
 
 
@@ -136,9 +136,9 @@ module Vanity
     def track!(args = nil)
       return unless @playground.collecting?
       timestamp, identity, values = track_args(args)
-      connection.metric_track @id, timestamp, identity, values
-      @playground.logger.info "vanity: #{@id} with value #{values.join(", ")}"
-      call_hooks timestamp, identity, values
+      connection.metric_track(@id, timestamp, identity, values)
+      @playground.logger.info("vanity: #{@id} with value #{values.join(", ")}")
+      call_hooks(timestamp, identity, values)
     end
 
     # Parses arguments to track! method and return array with timestamp,
@@ -165,8 +165,9 @@ module Vanity
     #   hook do |metric_id, timestamp, count|
     #     syslog.info metric_id
     #   end
-    def hook(&block)
-      @hooks << block
+    def hook(name=nil, &block)
+      name ||= SecureRandom.hex(16)
+      @hooks[name] = block
     end
 
     # This method returns the acceptable bounds of a metric as an array with
@@ -192,6 +193,9 @@ module Vanity
 
     # Human readable description. Use two newlines to break paragraphs.
     attr_accessor :description
+
+    # Retrieve current hooks on metric
+    attr_reader :hooks
 
     # Sets or returns description. For example
     #   metric "Yawns/sec" do
@@ -234,8 +238,8 @@ module Vanity
     end
 
     def call_hooks(timestamp, identity, values)
-      @hooks.each do |hook|
-        hook.call @id, timestamp, values.first || 1, :identity=>identity
+      @hooks.each do |name, hook|
+        hook.call(@id, timestamp, values.first || 1, :identity=>identity)
       end
     end
 

@@ -121,6 +121,14 @@ describe "Metric tracking" do
     assert_equal 6, total
   end
 
+  it "adds hooks only one hook for a name" do
+    metric "Many Happy Returns"
+
+    Vanity.playground.metric(:many_happy_returns).hook(:track!) { 1 + 1 }
+    Vanity.playground.metric(:many_happy_returns).hook(:track!) { 1 + 1 }
+    assert_equal 1, Vanity.playground.metric(:many_happy_returns).hooks.size
+  end
+
   it "doesn't runs hook when metrics disabled" do
     not_collecting!
     metric "Many Happy Returns"

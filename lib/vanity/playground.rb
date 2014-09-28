@@ -68,21 +68,6 @@ module Vanity
 
     attr_accessor :request_filter
 
-    # Defines a new experiment. Generally, do not call this directly,
-    # use one of the definition methods (ab_test, measure, etc).
-    #
-    # @see Vanity::Experiment
-    def define(name, type, options = {}, &block)
-      warn "Deprecated: if you need this functionality let's make a better API"
-      id = name.to_s.downcase.gsub(/\W/, "_").to_sym
-      raise "Experiment #{id} already defined once" if experiments[id]
-      klass = Experiment.const_get(type.to_s.gsub(/\/(.?)/) { "::#{$1.upcase}" }.gsub(/(?:^|_)(.)/) { $1.upcase })
-      experiment = klass.new(self, id, name, options)
-      experiment.instance_eval &block
-      experiment.save
-      experiments[id] = experiment
-    end
-
     # Returns the experiment. You may not have guessed, but this method raises
     # an exception if it cannot load the experiment's definition.
     #
@@ -227,13 +212,12 @@ module Vanity
     #
     # @see Vanity::Experiment
     def experiments
-      unless @experiments
-        @experiments = {}
-        @logger.info "Vanity: loading experiments from #{load_path}"
-        Dir[File.join(load_path, "*.rb")].each do |file|
-          experiment = Experiment::Base.load(self, @loading, file)
-          experiment.save
-        end
+      return @experiments if @experiments
+
+      @experiments = {}
+      @logger.info "Vanity: loading experiments from #{load_path}"
+      Dir[File.join(load_path, "*.rb")].each do |file|
+        Experiment::Base.load(self, @loading, file)
       end
       @experiments
     end
@@ -290,7 +274,7 @@ module Vanity
         @metrics = {}
         @logger.info "Vanity: loading metrics from #{load_path}/metrics"
         Dir[File.join(load_path, "metrics/*.rb")].each do |file|
-          Metric.load self, @loading, file
+          Metric.load(self, @loading, file)
         end
         if config_file_exists? && remote = load_config_file["metrics"]
           remote.each do |id, url|
