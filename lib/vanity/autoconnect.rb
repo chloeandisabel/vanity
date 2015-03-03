@@ -51,6 +51,9 @@ module Vanity
     end
 
     def self.in_blacklisted_rake_task?
+      puts "################ current rake tasks "
+      puts current_rake_tasks
+      puts current_rake_tasks.inspect
       !(current_rake_tasks & BLACKLISTED_RAILS_RAKE_TASKS).empty?
     end
 
