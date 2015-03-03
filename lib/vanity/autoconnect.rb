@@ -54,6 +54,7 @@ module Vanity
       puts "################ current rake tasks "
       puts current_rake_tasks
       puts current_rake_tasks.inspect
+      puts "in blacklisted rake mode #{!(current_rake_tasks & BLACKLISTED_RAILS_RAKE_TASKS).empty?}"
       !(current_rake_tasks & BLACKLISTED_RAILS_RAKE_TASKS).empty?
     end
 
